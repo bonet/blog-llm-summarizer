@@ -5,22 +5,29 @@ import os
 
 st.set_page_config(layout="wide")
 
-template_1 = """"Give me a 5-point summary on the following article:
+template_1 = """Give me a 100-word summary on the following blog post:
 
 ```
 {text_1}
 ```
 """
 
-template_2 = """"Why the following points are important:
+template_2 = """Why the following summary is important:
 
 ```
 {text_2}
 ```
 """
 
-client = OpenAI()  # For OpenAI API access
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY")) # For Google Gemini API access
+template_twitter = """Write a twitter post promoting the following blog:
+
+```
+{text_twitter}
+```
+"""
+
+client = OpenAI()
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def get_gemini_response(input_text):
     response_1 = client.chat.completions.create(
