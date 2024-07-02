@@ -1,33 +1,70 @@
 import streamlit as st
 from openai import OpenAI
 import google.generativeai as genai
-import os
+import os, hmac
+
+
+####################
+# Authentication
+####################
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], st.secrets["PASSWORD"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password.
+    st.text_input(
+        "Password", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error("😕 Password incorrect")
+    return False
+
+
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
+
+################################
+# Main Streamlit app starts here
+################################
 
 st.set_page_config(layout="wide")
 
-template_1 = """Give me a 100-word summary on the following blog post:
+template_1 = """{template_header}
 
 ```
 {text_1}
 ```
 """
 
-template_2 = """Why the following summary is important:
+template_2 = """{template_header}
 
 ```
 {text_2}
 ```
 """
 
-template_twitter = """Write a twitter post promoting the following blog:
+template_twitter = """{template_header}
 
 ```
 {text_twitter}
 ```
 """
 
-client = OpenAI()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+client = OpenAI(api_key = st.secrets["OPENAI_API_KEY"])
+genai.configure(api_key = st.secrets["GOOGLE_API_KEY"])
 
 def get_gemini_response(input_text):
     # Call Google Gemini API
@@ -39,7 +76,7 @@ def get_gemini_response(input_text):
             messages = [
                 {
                     "role": "user",
-                    "content": template_1.format(text_1=input_text)
+                    "content": template_1.format(text_1=input_text, template_header=st.secrets["TEMPLATE_1_HEADER"])
                 }
             ]
         )
@@ -49,7 +86,7 @@ def get_gemini_response(input_text):
             messages = [
                 {
                     "role": "user",
-                    "content": template_2.format(text_2=response_1.choices[0].message.content)
+                    "content": template_2.format(text_2=response_1.choices[0].message.content, template_header=st.secrets["TEMPLATE_2_HEADER"])
                 }
             ]
         )
@@ -64,7 +101,7 @@ def get_gemini_response(input_text):
             messages = [
                 {
                     "role": "user",
-                    "content": template_twitter.format(text_twitter=input_text)
+                    "content": template_twitter.format(text_twitter=input_text, template_header=st.secrets["TEMPLATE_TWITTER_HEADER"])
                 }
             ]
         )
@@ -81,11 +118,12 @@ def get_openai_response(input_text):
         response_1 = genai.GenerativeModel(
                 model_name = "models/gemini-1.5-pro-latest",
                 generation_config = {"temperature": 0.1}
-            ).generate_content(template_1.format(text_1=input_text))
+            ).generate_content(template_1.format(text_1=input_text, template_header=st.secrets["TEMPLATE_1_HEADER"]))
+
         response_2 = genai.GenerativeModel(
                 model_name = "models/gemini-1.5-pro-latest",
                 generation_config={"temperature": 0.1}
-            ).generate_content(template_2.format(text_2=response_1.text))
+            ).generate_content(template_2.format(text_2=response_1.text, template_header=st.secrets["TEMPLATE_2_HEADER"]))
 
         res = [
             response_1.text,
@@ -94,7 +132,7 @@ def get_openai_response(input_text):
     elif st.session_state["section"] == "Twitter":
         response = genai.GenerativeModel(
                 "models/gemini-1.5-pro-latest"
-            ).generate_content(template_twitter.format(text_twitter=input_text))
+            ).generate_content(template_twitter.format(text_twitter=input_text, template_header=st.secrets["TEMPLATE_TWITTER_HEADER"]))
 
         res = [response.text]
 

@@ -1,3 +1,6 @@
 ### LLM-Agnostic Summarizer
 
-For Blog Post
+Summarizer For Blog Post
+
+Run:
+`pipenv run streamlit run app.py'
